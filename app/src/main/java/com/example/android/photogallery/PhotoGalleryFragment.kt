@@ -15,16 +15,19 @@ import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.ViewModelProvider
 import androidx.recyclerview.widget.RecyclerView
+import androidx.work.*
 import com.example.android.photogallery.databinding.FragmentPhotoGalleryBinding
 import com.example.android.photogallery.databinding.FragmentPhotoGalleryItemBinding
 import com.example.android.photogallery.models.GalleryItem
+import java.util.concurrent.TimeUnit
 
 private const val TAG = "PhotoGalleryFragment"
+private const val POLL_WORK = "POLL_WORK"
 
 /**
  * A fragment representing a list of Items.
  */
-class PhotoGalleryFragment : Fragment() {
+class PhotoGalleryFragment : VisibleFragment() {
 
     private var columnCount = 2
     private var _binding: FragmentPhotoGalleryBinding? = null
@@ -82,6 +85,11 @@ class PhotoGalleryFragment : Fragment() {
             }
 
         }
+
+        val toggleItem = menu.findItem(R.id.menu_item_toggle_polling)
+        val isPolling = QueryPreferences.isPolling(requireContext())
+        val toggleItemTitle = if (isPolling) R.string.stop_polling else R.string.start_polling
+        toggleItem.setTitle(toggleItemTitle)
     }
 
     override fun onOptionsItemSelected(item: MenuItem): Boolean {
@@ -89,6 +97,31 @@ class PhotoGalleryFragment : Fragment() {
             R.id.menu_item_clear -> {
                 photoGalleryViewModel.fetchPhotos("")
                 true
+            }
+            R.id.menu_item_toggle_polling -> {
+                val isPolling = QueryPreferences.isPolling(requireContext())
+                if (isPolling) {
+                    WorkManager.getInstance(requireContext()).cancelUniqueWork(POLL_WORK)
+                    QueryPreferences.setPolling(requireContext(), false)
+                } else {
+                    // Условие на то, что устройство должено быть подключено к сети без ограничения трафика
+                    val constants = Constraints.Builder()
+                        .setRequiredNetworkType(NetworkType.UNMETERED)
+                        .build()
+                    // минимальный период 15 минут
+                    val workerRequest = PeriodicWorkRequest
+                        .Builder(CheckPhotoWorker::class.java, 15, TimeUnit.MINUTES)
+                        .setConstraints(constants)
+                        .build()
+                    WorkManager.getInstance(requireContext()).enqueueUniquePeriodicWork(
+                        POLL_WORK,
+                        ExistingPeriodicWorkPolicy.KEEP,
+                        workerRequest
+                    )
+                    QueryPreferences.setPolling(requireContext(), true)
+                }
+                activity?.invalidateOptionsMenu()
+                return true
             }
             else -> super.onOptionsItemSelected(item)
         }

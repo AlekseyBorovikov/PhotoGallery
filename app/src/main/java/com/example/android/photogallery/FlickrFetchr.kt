@@ -38,10 +38,10 @@ class FlickrFetchr {
         flickrApi = retrofit.create(FlickrApi::class.java)
     }
 
-    fun fetchPhotos(): LiveData<List<GalleryItem>> = fetchPhotosMetadata(flickrApi.fetchPhotos())
+    fun fetchPhotos(): LiveData<List<GalleryItem>> = fetchPhotosMetadata(fetchPhotoRequest())
 
     fun searchPhotos(query: String): LiveData<List<GalleryItem>> =
-        fetchPhotosMetadata(flickrApi.searchPhotos(query))
+        fetchPhotosMetadata(searchPhotoRequest(query))
 
     private fun fetchPhotosMetadata(flickrRequest: Call<FlickrResponse>): LiveData<List<GalleryItem>> {
         val responseLiveData: MutableLiveData<List<GalleryItem>> = MutableLiveData()
@@ -71,5 +71,9 @@ class FlickrFetchr {
         val bitmap = response.body()?.byteStream()?.use(BitmapFactory::decodeStream)
         return bitmap
     }
+
+    fun fetchPhotoRequest(): Call<FlickrResponse> = flickrApi.fetchPhotos()
+
+    fun searchPhotoRequest(query: String): Call<FlickrResponse> = flickrApi.searchPhotos(query)
 
 }

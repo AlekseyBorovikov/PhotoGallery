@@ -1,5 +1,7 @@
 package com.example.android.photogallery
 
+import android.content.Context
+import android.content.Intent
 import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
 import com.example.android.photogallery.databinding.ActivityPhotoGalleryBinding
@@ -20,6 +22,10 @@ class PhotoGalleryActivity : AppCompatActivity() {
                 .add(R.id.fragmentContainer, PhotoGalleryFragment.newInstance(3))
                 .commit()
         }
+    }
+
+    companion object {
+        fun newIntent(context: Context): Intent = Intent(context, PhotoGalleryActivity::class.java)
     }
 
 }
